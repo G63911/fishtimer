@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>港式蒸魚王 FishTimer V9.4 | Clean Edition</title>
+    <meta name="description" content="Professional fish steaming timer. Clean light theme with smart memory reset." />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+      :root { --hk-red: #DC2626; }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang HK", "Microsoft JhengHei", sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+        min-height: 100vh;
+        user-select: none;
+      }
+      .font-mono-timer { font-family: 'JetBrains Mono', monospace; }
+      input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+  }
+}
+</script>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="module">
+      import React, { useState, useEffect, useCallback, useRef } from 'react';
+      import ReactDOM from 'react-dom/client';
+
+      // --- 100% 保留資料邏輯 ---
+      const TAELS_PER_CATTY = 16;
+      const GRAMS_PER_TAEL = 37.8;
+      const FISH_CATEGORIES = [
+        { label: '👑 石斑/貴價 (Premium Groupers)', fishes: [
+          { id: 'red_grouper', name: '東星斑 (Red Grouper)', multiplier: 1.0 },
+          { id: 'tiger_grouper', name: '老虎斑 (Tiger Grouper)', multiplier: 1.05 },
+          { id: 'green_grouper', name: '青斑 (Green Grouper)', multiplier: 1.0 },
+          { id: 'pearl_grouper', name: '珍珠斑 (Pearl Grouper)', multiplier: 1.0 },
+          { id: 'mouse_grouper', name: '老鼠斑 (Humpback Grouper)', multiplier: 0.95 },
+          { id: 'coral_trout', name: '西星/燕星 (Coral Trout)', multiplier: 1.0 },
+        ]},
+        { label: '🌊 常見海魚 (Marine Fish)', fishes: [
+          { id: 'yellow_croaker', name: '黃花魚 (Yellow Croaker)', multiplier: 0.9 },
+          { id: 'pomfret_white', name: '白鯧 (White Pomfret)', multiplier: 0.85 },
+          { id: 'pomfret_gold', name: '金鯧 (Golden Pomfret)', multiplier: 0.9 },
+          { id: 'threadfin', name: '馬友 (Threadfin)', multiplier: 1.0 },
+          { id: 'tilefish', name: '馬頭魚 (Tilefish)', multiplier: 0.85 },
+          { id: 'grey_mullet', name: '烏頭 (Grey Mullet)', multiplier: 1.1 },
+          { id: 'seabream', name: '立魚/臘魚 (Seabream)', multiplier: 1.05 },
+          { id: 'snapper', name: '鯛魚 (Snapper)', multiplier: 1.0 },
+        ]},
+        { label: '🏞️ 淡水/河鮮 (Freshwater)', fishes: [
+          { id: 'grass_carp', name: '鯇魚 (Grass Carp)', multiplier: 1.1 },
+          { id: 'carp_belly', name: '鯇魚腩 (Carp Belly)', multiplier: 1.2 },
+          { id: 'mandarin_fish', name: '桂花魚 (Mandarin Fish)', multiplier: 1.0 },
+          { id: 'marble_goby', name: '筍殼魚 (Marble Goby)', multiplier: 1.05 },
+          { id: 'white_eel', name: '白鱔 (White Eel)', multiplier: 1.25 },
+          { id: 'bighead_carp', name: '大魚/大頭 (Bighead Carp)', multiplier: 1.15 },
+        ]},
+        { label: '🔪 其他 (Special Cuts)', fishes: [
+          { id: 'giant_grouper_meat', name: '龍躉球/肉 (Giant Meat)', multiplier: 1.3 },
+          { id: 'fish_head', name: '魚雲/魚頭 (Fish Head)', multiplier: 1.25 },
+          { id: 'squid', name: '鮮魷魚 (Fresh Squid)', multiplier: 0.6 },
+        ]}
+      ];
+      const BASE_TIME_SECONDS = 480;
+      const SECONDS_PER_TAEL_ADJUSTMENT = 30;
+      const RESTING_TIME_SECONDS = 120;
+
+      const translations = {
+        zh: { appName: '港式蒸魚王', appVersion: 'HK Fish King V9.4', fishWeight: '魚嘅重量 (斤/両)', catties: '斤', taels: '両', grams: '克', fishType: '魚嘅種類', startSteaming: '開火！', cancelReset: '熄火 / 重置', recipe: '蒸魚必勝法則', smartMemoryBadge: '🔥 已自動校正爐火火力', estimatedTime: '預計需時', steaming: '蒸緊...', resting: '🤫 熄火焗魚中...', stopAlarm: '熄火！', dismissAlarm: '按此停止', serveNow: '食得！', feedbackTitle: '今次效果點？', feedbackSubtitle: '我會記住你部爐嘅火力，下次再準啲！', perfect: '完美 (啱啱好)', undercooked: '未熟 (生)', overcooked: '老咗 (過火)', shareResult: '分享成果', shareText: (weight, fish) => `🐟 完美！我用【港式蒸魚王】成功蒸咗條 ${weight} ${fish}！火候啱啱好。你都試下：https://www.fishtimer.com`, rescueButton: '🚑 補火救魚', sauceTitle: '必勝豉油比例', soySauce: '蒸魚豉油', sugar: '白糖', hotWater: '熟水', oil: '蔥絲/滾油', tbsp: '湯匙', tsp: '茶匙', adequate: '適量', recipeTitle: '蒸魚必勝法則', recipeStep1: '魚底墊蔥段，大火水滾落鑊。', recipeStep2: '蒸完一定要倒掉碟底腥水 (秘訣!)。', recipeStep3: '舖蔥絲，淋滾油激發香味。', recipeStep4: '最後沿碟邊倒入熱豉油', chefTip1: '💡 專家推介：配合', chefTipBold: '優質頭抽 (Premium Soy)', chefTip2: '味道更鮮。' },
+        ph: { appName: 'Timer ng Isda', appVersion: 'HK Fish King V9.4', fishWeight: 'Timbang ng Isda', catties: '斤', taels: '両', grams: 'g', fishType: 'Klase ng Isda', startSteaming: 'Simulan!', cancelReset: 'Kanselahin', recipe: 'Gabay sa Pagluluto', smartMemoryBadge: '🔥 Inayos base sa lakas ng kalan', estimatedTime: 'Oras ng pagluluto', steaming: 'Nagluluto...', resting: 'Hayaan muna (Resting)', stopAlarm: 'PATAYIN APOY!', dismissAlarm: 'PINDUTIN ITO', serveNow: 'Ihain na!', feedbackTitle: 'Kumusta ang luto?', perfect: 'Sakto', undercooked: 'Hilaw', overcooked: 'Sunog', shareResult: 'Ibahagi', shareText: (weight, fish) => `Perfect steamed ${fish} (${weight}) with FishTimer! Try it: https://www.fishtimer.com`, rescueButton: '🚑 Hilaw pa?', sauceTitle: 'Timpla ng Toyo', soySauce: 'Toyo', sugar: 'Asukal', hotWater: 'Mainit na Tubig', oil: 'Mantika/Sibuyas', tbsp: 'tbsp', tsp: 'tsp', adequate: 'Sapat' },
+        id: { appName: 'Timer Ikan HK', appVersion: 'HK Fish King V9.4', fishWeight: 'Berat Ikan', catties: '斤', taels: '両', grams: 'g', fishType: 'Jenis Ikan', startSteaming: 'Mulai!', cancelReset: 'Batal', recipe: 'Resep Rahasia', smartMemoryBadge: '🔥 Otomatis sesuai kompor Anda', estimatedTime: 'Waktu kukus', steaming: 'Mengukus...', resting: 'Diamkan sebentar', stopAlarm: 'MATIKAN API!', dismissAlarm: 'TEKAN INI', serveNow: 'Siap Saji!', feedbackTitle: 'Hasilnya?', feedbackSubtitle: 'Saya ingat setelan Anda.', undercooked: 'Mentah', perfect: 'Pas', overcooked: 'Kematangan', shareResult: 'Bagikan', shareText: (weight, fish) => `Ikan ${fish} (${weight}) matang sempurna with FishTimer! Coba di: https://www.fishtimer.com`, rescueButton: '🚑 Belum matang?', sauceTitle: 'Saran Kecap', soySauce: 'Kecap Ikan', sugar: 'Gula', hotWater: 'Air Panas', oil: 'Minyak Panas', tbsp: 'sdm', tsp: 'sdt', adequate: 'Secukupnya' }
+      };
+
+      const WeightIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-8 h-8", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2.5 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" }));
+      const FishIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-8 h-8", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2.5 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" }), React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" }));
+      const BookOpenIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-5 h-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 3 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" }));
+      const XIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2.5 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" }));
+      const PlayIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 3 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" }), React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z" }));
+      const RotateCwIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-6 h-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 3 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 4v5h5M20 20v-5h-5" }), React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 9a9 9 0 0114.13-5.26M20 15a9 9 0 01-14.13 5.26" }));
+      const ShareIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-5 h-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 3 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" }));
+      const AmbulanceIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-5 h-5", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 3 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M13 10V3L4 14h7v7l9-11h-7z" }));
+      const MarketLampIcon = ({ className }) => React.createElement("svg", { className: className || "w-10 h-10", viewBox: "0 0 40 40", fill: "none", xmlns: "http://www.w3.org/2000/svg" }, React.createElement("path", { d: "M20 5V8M20 32V35M10 15L6 11M34 11L30 15", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round" }), React.createElement("path", { d: "M5 24C5 18 10 12 20 12C30 12 35 18 35 24H5Z", fill: "currentColor" }), React.createElement("path", { d: "M12 24V28C12 30.2091 15.5817 32 20 32C24.4183 32 28 30.2091 28 28V24", stroke: "currentColor", strokeWidth: "3" }));
+      const WokIcon = ({ className }) => React.createElement("svg", { className: className || "w-10 h-10", viewBox: "0 0 32 32", fill: "none", xmlns: "http://www.w3.org/2000/svg" }, React.createElement("path", { d: "M4 18C4 22 8 26 16 26C24 26 28 22 28 18", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round" }), React.createElement("path", { d: "M6 16C6 16 10 10 16 10C22 10 26 16 26 16H6Z", fill: "currentColor", opacity: "0.2", stroke: "currentColor", strokeWidth: "2" }), React.createElement("path", { d: "M16 10V6", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }), React.createElement("path", { d: "M14 6H18", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }));
+      
+      const SauceCalculator = ({ totalTaels, t }) => {
+        if (totalTaels <= 0) return null;
+        let multiplier = totalTaels > 20 ? 2 : totalTaels > 12 ? 1.5 : 1;
+        const fmt = a => { let r = a * multiplier; return r % 1 !== 0 ? `${Math.floor(r)}½` : r; };
+        return React.createElement("div", { className: "space-y-4" },
+          React.createElement("h3", { className: "text-lg font-bold uppercase tracking-tight text-slate-500" }, t('sauceTitle')),
+          React.createElement("ul", { className: "space-y-2 text-base text-slate-600" },
+            React.createElement("li", { className: "flex items-baseline" }, React.createElement("span", { className: "font-bold text-xl mr-2 text-slate-900" }, `${fmt(2)}${t('tbsp')}`), React.createElement("span", null, t('soySauce'))),
+            React.createElement("li", { className: "flex items-baseline" }, React.createElement("span", { className: "font-bold text-xl mr-2 text-slate-900" }, `${fmt(1)}${t('tsp')}`), React.createElement("span", null, t('sugar'))),
+            React.createElement("li", { className: "flex items-baseline" }, React.createElement("span", { className: "font-bold text-xl mr-2 text-slate-900" }, `${fmt(2)}${t('tbsp')}`), React.createElement("span", null, t('hotWater'))),
+            React.createElement("li", { className: "flex items-baseline" }, React.createElement("span", { className: "font-bold text-xl mr-2 text-slate-900" }, t('adequate')), React.createElement("span", null, t('oil')))
+          )
+        );
+      };
+
+      const RecipeModal = ({ isOpen, onClose, t }) => {
+        if (!isOpen) return null;
+        const recipeSteps = [t('recipeStep1'), t('recipeStep2'), t('recipeStep3'), t('recipeStep4')];
+        return React.createElement("div", { className: "fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50", onClick: onClose },
+          React.createElement("div", { className: "bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 relative", onClick: e => e.stopPropagation() },
+            React.createElement("button", { onClick: onClose, className: "absolute top-4 right-4 text-slate-400 hover:scale-110 transition-transform" }, React.createElement(XIcon, { className: "w-6 h-6" })),
+            React.createElement("h2", { className: "text-2xl font-black text-center mb-8 text-slate-900 uppercase tracking-tighter" }, t('recipeTitle')),
+            React.createElement("ol", { className: "space-y-6 text-left" },
+              recipeSteps.map((step, index) => React.createElement("li", { key: index, className: "flex items-start" },
+                React.createElement("span", { className: "mr-3 text-xl font-black text-red-600" }, `${index + 1}.`),
+                React.createElement("span", { className: "text-slate-700 font-bold text-base leading-snug" }, step)
+              ))
+            ),
+            React.createElement("div", { className: "mt-8 p-4 bg-red-50 border-l-4 border-red-600 rounded-r-xl" },
+              React.createElement("p", { className: "text-sm text-slate-700 font-bold leading-relaxed" }, t('chefTip1'), " ", React.createElement("span", { className: "font-black text-red-600" }, t('chefTipBold')), " ", t('chefTip2'))
+            )
+          )
+        );
+      };
+
+      const TimerDisplay = ({ t, timeRemaining, calculatedTime, timerState, onStopAlarmOrFinish, onFeedback, onStartRescue, fishName, weightString }) => {
+        const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+        if (timerState === 'feedback') {
+          return React.createElement("div", { className: "flex flex-col items-center justify-center rounded-[2rem] text-center min-h-[340px] bg-slate-50 p-8 space-y-6 border border-slate-200" },
+            React.createElement("div", null,
+              React.createElement("h3", { className: "text-2xl font-black text-slate-900 mb-2" }, t('feedbackTitle')),
+              React.createElement("p", { className: "text-sm font-bold text-slate-500 px-4" }, t('feedbackSubtitle'))
+            ),
+            React.createElement("div", { className: "w-full grid grid-cols-1 gap-3" },
+              [{ id: 'perfect', color: 'bg-emerald-600 text-white shadow-emerald-900/20' }, { id: 'undercooked', color: 'bg-orange-500 text-white shadow-orange-900/20' }, { id: 'overcooked', color: 'bg-slate-700 text-white shadow-slate-900/20' }].map(btn =>
+                React.createElement("button", { key: btn.id, onClick: () => onFeedback(btn.id), className: `py-4 px-4 ${btn.color} rounded-2xl font-extrabold text-sm uppercase tracking-widest active:scale-95 transition-all shadow-md` }, t(btn.id))
+              )
+            ),
+            React.createElement("div", { className: "w-full flex gap-3 pt-2" },
+              React.createElement("button", { onClick: onStartRescue, className: "flex-1 flex items-center justify-center py-4 bg-red-600 text-white rounded-2xl font-black text-xs shadow-lg shadow-red-900/30 active:scale-[0.98] transition-all" }, React.createElement(AmbulanceIcon, { className: "w-5 h-5 mr-2" }), React.createElement("span", { className: "uppercase tracking-widest" }, t('rescueButton'))),
+              React.createElement("a", { href: `https://wa.me/?text=${encodeURIComponent(t('shareText', weightString, fishName))}`, target: "_blank", rel: "noopener noreferrer", className: "flex-1 flex items-center justify-center py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs shadow-lg shadow-emerald-900/30 active:scale-[0.98] transition-all" }, React.createElement(ShareIcon, { className: "w-5 h-5 mr-2" }), React.createElement("span", { className: "uppercase tracking-widest" }, t('shareResult')))
+            )
+          );
+        }
+
+        const getPhaseConfig = () => {
+          switch (timerState) {
+            case 'idle': return { status: t('estimatedTime'), ringColor: 'stroke-slate-200', activeRing: 'stroke-slate-300', textColor: 'text-slate-900', progress: 1, displayTime: calculatedTime, icon: null };
+            case 'steaming': return { status: t('steaming'), ringColor: 'stroke-red-100', activeRing: 'stroke-red-600', textColor: 'text-red-600', progress: calculatedTime > 0 ? timeRemaining / calculatedTime : 0, displayTime: timeRemaining, icon: '🔥' };
+            case 'resting': return { status: t('resting'), ringColor: 'stroke-orange-100', activeRing: 'stroke-orange-500', textColor: 'text-orange-500', progress: timeRemaining / RESTING_TIME_SECONDS, displayTime: timeRemaining, icon: React.createElement(WokIcon, { className: "w-10 h-10 text-orange-500" }) };
+            case 'rescue': return { status: t('rescueing'), ringColor: 'stroke-red-100', activeRing: 'stroke-red-600', textColor: 'text-red-600', progress: timeRemaining / 90, displayTime: timeRemaining, icon: '🔥' };
+            case 'heat_alarm': return { status: t('stopAlarm'), ringColor: 'stroke-red-200', activeRing: 'stroke-red-600', textColor: 'text-red-600', progress: 1, displayTime: timeRemaining, urgent: true, icon: React.createElement(MarketLampIcon, { className: "w-16 h-16 text-red-600" }) };
+            case 'ready_alarm': return { status: t('serveNow'), ringColor: 'stroke-emerald-200', activeRing: 'stroke-emerald-500', textColor: 'text-emerald-600', progress: 1, displayTime: 0, urgent: true, icon: '😋' };
+            default: return { status: '', ringColor: '', activeRing: '', textColor: '', progress: 0, displayTime: 0, icon: null };
+          }
+        };
+
+        const config = getPhaseConfig();
+        const radius = 85; const circumference = 2 * Math.PI * radius;
+        const strokeDashoffset = circumference * (1 - Math.max(0, config.progress));
+
+        return React.createElement("div", { className: "relative flex flex-col items-center justify-center py-2 space-y-4 min-h-[340px] transition-all duration-700" },
+          config.urgent && React.createElement("div", { onClick: onStopAlarmOrFinish, className: "absolute inset-0 z-30 cursor-pointer rounded-[2rem] bg-red-500/10 animate-pulse active:scale-[0.98] transition-transform" }),
+          React.createElement("div", { className: "relative w-64 h-64" },
+            React.createElement("svg", { className: "w-full h-full -rotate-90", viewBox: "0 0 200 200" },
+              React.createElement("circle", { cx: "100", cy: "100", r: radius, fill: "none", className: config.ringColor, strokeWidth: "12" }),
+              React.createElement("circle", { cx: "100", cy: "100", r: radius, fill: "none", className: `transition-all duration-1000 linear ${config.activeRing}`, strokeWidth: "12", strokeDasharray: circumference, strokeDashoffset: strokeDashoffset, strokeLinecap: "butt" })
+            ),
+            React.createElement("div", { className: "absolute inset-0 flex flex-col items-center justify-center text-center p-4" },
+              !config.urgent ?
+                React.createElement("div", { className: "flex flex-col items-center justify-center w-full h-full" },
+                  React.createElement("div", { className: "mb-1 h-10 flex items-center justify-center" }, config.icon && (typeof config.icon === 'string' ? React.createElement("span", { className: "text-3xl" }, config.icon) : config.icon)),
+                  React.createElement("span", { className: `text-6xl font-black font-mono-timer tracking-tighter leading-none ${config.textColor}` }, formatTime(config.displayTime)),
+                  React.createElement("p", { className: "w-4/5 mx-auto text-[11px] font-black uppercase tracking-tight text-slate-400 mt-1 break-words leading-tight" }, config.status)
+                ) :
+                React.createElement("div", { className: "flex flex-col items-center justify-center w-full h-full" },
+                  React.createElement("div", { className: "mb-2 transform scale-125" }, config.icon),
+                  React.createElement("h4", { className: `text-3xl font-black uppercase tracking-tighter ${timerState === 'heat_alarm' ? 'text-red-600' : 'text-emerald-600'}` }, config.status),
+                  React.createElement("div", { className: "mt-1" }, React.createElement("span", { className: "text-[10px] font-black bg-white border border-slate-200 text-slate-900 py-1 px-4 rounded-full shadow-sm" }, t('dismissAlarm')))
+                )
+            )
+          )
+        );
+      };
+
+      const App = () => {
+        const [language, setLanguage] = useState('zh');
+        const [catties, setCatties] = useState(1);
+        const [taels, setTaels] = useState(0);
+        const [grams, setGrams] = useState(TAELS_PER_CATTY * GRAMS_PER_TAEL);
+        const [fishTypeId, setFishTypeId] = useState(FISH_CATEGORIES[0].fishes[0].id);
+        const [calculatedTime, setCalculatedTime] = useState(0);
+        const [timeRemaining, setTimeRemaining] = useState(0);
+        const [timerState, setTimerState] = useState('idle');
+        const [userTimeOffset, setUserTimeOffset] = useState(0);
+        const [isRecipeModalOpen, setRecipeModalOpen] = useState(false);
+        const audioCtxRef = useRef(null);
+        const alarmIntervalRef = useRef(null);
+        const t = useCallback((key, ...args) => {
+            const translationSet = translations[language] || translations.zh;
+            const str = translationSet[key] || translations.zh[key];
+            return typeof str === 'function' ? str(...args) : str;
+        }, [language]);
+        useEffect(() => { const saved = localStorage.getItem('userTimeOffset'); if (saved) setUserTimeOffset(parseInt(saved, 10) || 0); }, []);
+        
+        const ensureAudioContext = useCallback(() => {
+          if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+        }, []);
+
+        const handleCattyTaelChange = (newCattiesStr, newTaelsStr) => {
+            const newCatties = parseInt(newCattiesStr, 10) || 0; const newTaels = parseInt(newTaelsStr, 10) || 0;
+            setCatties(newCatties); setTaels(newTaels);
+            setGrams(parseFloat(((newCatties * TAELS_PER_CATTY + newTaels) * GRAMS_PER_TAEL).toFixed(1)));
+        };
+        const handleGramsChange = newGramsStr => {
+            const newGrams = parseFloat(newGramsStr) || 0; setGrams(newGrams);
+            if (newGrams === 0) { setCatties(0); setTaels(0); return; }
+            const totalTaels = newGrams / GRAMS_PER_TAEL; let newCatties = Math.floor(totalTaels / TAELS_PER_CATTY);
+            let newTaels = Math.round(totalTaels % TAELS_PER_CATTY); if (newTaels === TAELS_PER_CATTY) { newCatties += 1; newTaels = 0; }
+            setCatties(newCatties); setTaels(newTaels);
+        };
+        useEffect(() => {
+            const totalTaels = catties * TAELS_PER_CATTY + taels; if (totalTaels <= 0) { setCalculatedTime(0); return; }
+            const selectedFish = FISH_CATEGORIES.flatMap(c => c.fishes).find(f => f.id === fishTypeId);
+            const multiplier = selectedFish ? selectedFish.multiplier : 1.0;
+            const baseTime = BASE_TIME_SECONDS + ((totalTaels - TAELS_PER_CATTY) * SECONDS_PER_TAEL_ADJUSTMENT);
+            const finalTime = Math.max(0, Math.round(baseTime * multiplier) + userTimeOffset);
+            setCalculatedTime(finalTime); if (['idle', 'feedback'].includes(timerState)) setTimeRemaining(finalTime);
+        }, [catties, taels, fishTypeId, timerState, userTimeOffset]);
+        
+        const stopAlarm = useCallback(() => { if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current); alarmIntervalRef.current = null; }, []);
+        
+        const playAlarm = useCallback(type => {
+            ensureAudioContext(); stopAlarm();
+            const play = () => {
+                if (!audioCtxRef.current) return; const now = audioCtxRef.current.currentTime;
+                // --- 4連嗶 經典聲效 ---
+                if(type === 'urgent') for (let i = 0; i < 4; i++) { const osc = audioCtxRef.current.createOscillator(); osc.type = 'square'; osc.frequency.setValueAtTime(1200, now); osc.connect(audioCtxRef.current.destination); osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.06); } 
+                else { const o1 = audioCtxRef.current.createOscillator(); o1.type = 'sine'; o1.frequency.setValueAtTime(1000, now); o1.connect(audioCtxRef.current.destination); o1.start(now); o1.stop(now + 0.15); }
+            };
+            play(); alarmIntervalRef.current = window.setInterval(play, type === 'urgent' ? 1000 : 1500);
+        }, [stopAlarm, ensureAudioContext]);
+
+        useEffect(() => { if (timeRemaining <= 0) {
+            if (timerState === 'steaming') { setTimerState('heat_alarm'); setTimeRemaining(RESTING_TIME_SECONDS); } 
+            else if (['heat_alarm', 'resting'].includes(timerState)) setTimerState('ready_alarm');
+            else if (timerState === 'rescue') setTimerState('feedback');
+        }}, [timeRemaining, timerState]);
+        useEffect(() => { let id; if (['steaming', 'heat_alarm', 'resting', 'rescue'].includes(timerState)) { id = window.setInterval(() => setTimeRemaining(p => Math.max(0, p - 1)), 1000); } return () => clearInterval(id); }, [timerState]);
+        useEffect(() => { if (timerState === 'heat_alarm' || timerState === 'ready_alarm') playAlarm(timerState === 'heat_alarm' ? 'urgent' : 'notify'); else stopAlarm(); return stopAlarm; }, [timerState, playAlarm, stopAlarm]);
+        const selectedFish = FISH_CATEGORIES.flatMap(c => c.fishes).find(f => f.id === fishTypeId);
+        
+        return React.createElement("div", { className: "min-h-screen flex flex-col items-center justify-center p-4" },
+          React.createElement("main", { className: "w-full max-w-md bg-white rounded-3xl shadow-xl p-8 md:p-10 space-y-8 border border-slate-200" },
+            React.createElement("header", { className: "flex flex-col items-center text-center space-y-4" },
+              React.createElement("img", { src: "logo.png", className: "w-24 h-24 mx-auto object-contain", alt: "Logo" }),
+              React.createElement("div", { className: "flex p-1 bg-slate-100 rounded-full border border-slate-200" },
+                ['zh', 'ph', 'id'].map(l => React.createElement("button", { key: l, onClick: () => setLanguage(l), className: `px-4 py-1.5 text-[10px] font-black rounded-full tracking-widest transition-all ${language === l ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-slate-600'}` }, l === 'zh' ? '繁體' : l.toUpperCase()))
+              ),
+              React.createElement("div", null,
+                React.createElement("h1", { className: "text-3xl font-black tracking-tighter text-slate-900 uppercase" }, t('appName')),
+                React.createElement("p", { className: "text-red-600 font-black text-[10px] mt-1 uppercase tracking-[0.3em]" }, t('appVersion'))
+              )
+            ),
+            
+            // --- 修正：新增清除功能與交叉符號 ---
+            timerState === 'idle' && userTimeOffset !== 0 && React.createElement("div", { 
+              onClick: () => { setUserTimeOffset(0); localStorage.removeItem('userTimeOffset'); },
+              className: "cursor-pointer bg-red-50 text-red-500 text-[10px] font-black tracking-widest uppercase text-center py-2 px-4 rounded-full border border-red-200 hover:bg-red-100 transition-colors flex items-center justify-center gap-2" 
+            }, 
+              React.createElement("span", null, `${t('smartMemoryBadge')} (${userTimeOffset > 0 ? '+' : ''}${userTimeOffset}S)`),
+              React.createElement(XIcon, { className: "w-3 h-3" }) // 交叉符號
+            ),
+            
+            React.createElement("div", { className: `${timerState !== 'idle' ? 'hidden' : 'space-y-8'}` },
+              React.createElement("div", { className: "space-y-6" },
+                React.createElement("div", { className: "space-y-3" },
+                  React.createElement("label", { className: "flex items-center text-lg font-bold text-slate-900 uppercase" }, React.createElement(WeightIcon, { className: "w-8 h-8 text-slate-700 mr-2" }), t('fishWeight')),
+                  React.createElement("div", { className: "grid grid-cols-1 gap-4" },
+                    React.createElement("div", { className: "flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm" },
+                      React.createElement("div", { className: "relative flex-1" },
+                        React.createElement("input", { type: "number", value: catties, onChange: e => handleCattyTaelChange(e.target.value, String(taels)), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none" }),
+                        React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('catties'))
+                      ),
+                      React.createElement("div", { className: "w-px h-10 bg-slate-200 my-auto" }),
+                      React.createElement("div", { className: "relative flex-1" },
+                        React.createElement("input", { type: "number", value: taels, onChange: e => handleCattyTaelChange(String(catties), e.target.value), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none", max: "15" }),
+                        React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('taels'))
+                      )
+                    ),
+                    React.createElement("div", { className: "relative bg-slate-50 p-1.5 rounded-2xl border border-slate-200" },
+                      React.createElement("input", { type: "number", value: grams, onChange: e => handleGramsChange(e.target.value), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none" }),
+                      React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('grams'))
+                    )
+                  )
+                ),
+                React.createElement(SauceCalculator, { totalTaels: catties * TAELS_PER_CATTY + taels, t: t })
+              ),
+              React.createElement("div", { className: "space-y-3" },
+                React.createElement("label", { className: "flex items-center text-lg font-bold text-slate-900 uppercase" }, React.createElement(FishIcon, { className: "w-8 h-8 text-slate-700 mr-2" }), t('fishType')),
+                React.createElement("div", { className: "relative" },
+                  React.createElement("select", { value: fishTypeId, onChange: e => setFishTypeId(e.target.value), className: "w-full p-4 bg-white border border-slate-200 shadow-sm rounded-2xl font-bold text-slate-900 appearance-none outline-none focus:border-slate-400" },
+                    FISH_CATEGORIES.map(category => React.createElement("optgroup", { key: category.label, label: category.label },
+                      category.fishes.map(fish => React.createElement("option", { key: fish.id, value: fish.id }, fish.name))
+                    ))
+                  ),
+                  React.createElement("div", { className: "absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-500" },
+                    React.createElement("svg", { className: "w-5 h-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "3", d: "M19 9l-7 7-7-7" }))
+                  )
+                )
+              )
+            ),
+            
+            // --- 修正：取消 TimerDisplay 條件，確保時鐘常駐 ---
+            React.createElement(TimerDisplay, { t: t, timeRemaining: timeRemaining, calculatedTime: calculatedTime, timerState: timerState, onStopAlarmOrFinish: () => { if (timerState === 'heat_alarm') setTimerState('resting'); else if (timerState === 'ready_alarm') { setTimerState('feedback'); stopAlarm(); } }, onFeedback: fb => { let offset = userTimeOffset; if (fb === 'undercooked') offset += 30; if (fb === 'overcooked') offset -= 30; setUserTimeOffset(offset); localStorage.setItem('userTimeOffset', String(offset)); setTimerState('idle'); }, onStartRescue: () => { setTimeRemaining(90); setTimerState('rescue'); }, fishName: selectedFish.name, weightString: `${catties}${t('catties')}${taels}${t('taels')}` }),
+            
+            React.createElement("div", { className: "pt-4" },
+              timerState === 'idle' ?
+                React.createElement("button", { onClick: () => { ensureAudioContext(); setTimeRemaining(calculatedTime); setTimerState('steaming'); }, className: "w-full flex items-center justify-center py-4 rounded-2xl font-bold text-lg text-white bg-red-600 shadow-lg shadow-red-900/30 uppercase active:scale-[0.98] transition-all" }, React.createElement(PlayIcon, { className: "w-6 h-6 mr-3" }), t('startSteaming')) :
+                !['feedback'].includes(timerState) && React.createElement("button", { onClick: () => setTimerState('idle'), className: "w-full flex items-center justify-center py-4 rounded-2xl font-bold text-lg bg-slate-800 text-white uppercase active:scale-[0.98] transition-all" }, React.createElement(RotateCwIcon, { className: "w-6 h-6 mr-3" }), t('cancelReset'))
+            ),
+            React.createElement("div", { className: "text-center" },
+              React.createElement("button", { onClick: () => setRecipeModalOpen(true), className: "inline-flex items-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-red-500 transition-colors" }, React.createElement(BookOpenIcon, { className: "w-4 h-4 mr-2" }), t('recipe'))
+            )
+          ),
+          React.createElement("footer", { className: "text-center pt-8" },
+            React.createElement("p", { className: "text-xs text-slate-500" }, "Designed & Developed by ", React.createElement("a", { href: "http://www.toplinkhk.com", target: "_blank", rel: "noopener noreferrer", className: "font-bold hover:text-red-600 transition-colors" }, "Toplink Hi-Tech Limited"))
+          ),
+          React.createElement(RecipeModal, { isOpen: isRecipeModalOpen, onClose: () => setRecipeModalOpen(false), t: t })
+        );
+      };
+      const root = ReactDOM.createRoot(document.getElementById('root')); root.render(React.createElement(App, null));
+    </script>
+  </body>
+</html>
