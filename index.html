@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>港式蒸魚王 FishTimer V9.4 | Clean Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>港式蒸魚王 FishTimer V9.5 | Mobile Ready</title>
     <meta name="description" content="Professional fish steaming timer. Clean light theme with smart memory reset." />
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,6 +18,8 @@
         color: #1e293b;
         min-height: 100vh;
         user-select: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
       .font-mono-timer { font-family: 'JetBrains Mono', monospace; }
       input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -38,7 +40,7 @@
       import React, { useState, useEffect, useCallback, useRef } from 'react';
       import ReactDOM from 'react-dom/client';
 
-      // --- 100% 保留資料邏輯 ---
+      // --- 資料邏輯 (完全保留) ---
       const TAELS_PER_CATTY = 16;
       const GRAMS_PER_TAEL = 37.8;
       const FISH_CATEGORIES = [
@@ -79,9 +81,9 @@
       const RESTING_TIME_SECONDS = 120;
 
       const translations = {
-        zh: { appName: '港式蒸魚王', appVersion: 'HK Fish King V9.4', fishWeight: '魚嘅重量 (斤/両)', catties: '斤', taels: '両', grams: '克', fishType: '魚嘅種類', startSteaming: '開火！', cancelReset: '熄火 / 重置', recipe: '蒸魚必勝法則', smartMemoryBadge: '🔥 已自動校正爐火火力', estimatedTime: '預計需時', steaming: '蒸緊...', resting: '🤫 熄火焗魚中...', stopAlarm: '熄火！', dismissAlarm: '按此停止', serveNow: '食得！', feedbackTitle: '今次效果點？', feedbackSubtitle: '我會記住你部爐嘅火力，下次再準啲！', perfect: '完美 (啱啱好)', undercooked: '未熟 (生)', overcooked: '老咗 (過火)', shareResult: '分享成果', shareText: (weight, fish) => `🐟 完美！我用【港式蒸魚王】成功蒸咗條 ${weight} ${fish}！火候啱啱好。你都試下：https://www.fishtimer.com`, rescueButton: '🚑 補火救魚', sauceTitle: '必勝豉油比例', soySauce: '蒸魚豉油', sugar: '白糖', hotWater: '熟水', oil: '蔥絲/滾油', tbsp: '湯匙', tsp: '茶匙', adequate: '適量', recipeTitle: '蒸魚必勝法則', recipeStep1: '魚底墊蔥段，大火水滾落鑊。', recipeStep2: '蒸完一定要倒掉碟底腥水 (秘訣!)。', recipeStep3: '舖蔥絲，淋滾油激發香味。', recipeStep4: '最後沿碟邊倒入熱豉油', chefTip1: '💡 專家推介：配合', chefTipBold: '優質頭抽 (Premium Soy)', chefTip2: '味道更鮮。' },
-        ph: { appName: 'Timer ng Isda', appVersion: 'HK Fish King V9.4', fishWeight: 'Timbang ng Isda', catties: '斤', taels: '両', grams: 'g', fishType: 'Klase ng Isda', startSteaming: 'Simulan!', cancelReset: 'Kanselahin', recipe: 'Gabay sa Pagluluto', smartMemoryBadge: '🔥 Inayos base sa lakas ng kalan', estimatedTime: 'Oras ng pagluluto', steaming: 'Nagluluto...', resting: 'Hayaan muna (Resting)', stopAlarm: 'PATAYIN APOY!', dismissAlarm: 'PINDUTIN ITO', serveNow: 'Ihain na!', feedbackTitle: 'Kumusta ang luto?', perfect: 'Sakto', undercooked: 'Hilaw', overcooked: 'Sunog', shareResult: 'Ibahagi', shareText: (weight, fish) => `Perfect steamed ${fish} (${weight}) with FishTimer! Try it: https://www.fishtimer.com`, rescueButton: '🚑 Hilaw pa?', sauceTitle: 'Timpla ng Toyo', soySauce: 'Toyo', sugar: 'Asukal', hotWater: 'Mainit na Tubig', oil: 'Mantika/Sibuyas', tbsp: 'tbsp', tsp: 'tsp', adequate: 'Sapat' },
-        id: { appName: 'Timer Ikan HK', appVersion: 'HK Fish King V9.4', fishWeight: 'Berat Ikan', catties: '斤', taels: '両', grams: 'g', fishType: 'Jenis Ikan', startSteaming: 'Mulai!', cancelReset: 'Batal', recipe: 'Resep Rahasia', smartMemoryBadge: '🔥 Otomatis sesuai kompor Anda', estimatedTime: 'Waktu kukus', steaming: 'Mengukus...', resting: 'Diamkan sebentar', stopAlarm: 'MATIKAN API!', dismissAlarm: 'TEKAN INI', serveNow: 'Siap Saji!', feedbackTitle: 'Hasilnya?', feedbackSubtitle: 'Saya ingat setelan Anda.', undercooked: 'Mentah', perfect: 'Pas', overcooked: 'Kematangan', shareResult: 'Bagikan', shareText: (weight, fish) => `Ikan ${fish} (${weight}) matang sempurna with FishTimer! Coba di: https://www.fishtimer.com`, rescueButton: '🚑 Belum matang?', sauceTitle: 'Saran Kecap', soySauce: 'Kecap Ikan', sugar: 'Gula', hotWater: 'Air Panas', oil: 'Minyak Panas', tbsp: 'sdm', tsp: 'sdt', adequate: 'Secukupnya' }
+        zh: { appName: '港式蒸魚王', appVersion: 'HK Fish King V9.5', fishWeight: '魚嘅重量 (斤/両)', catties: '斤', taels: '両', grams: '克', fishType: '魚嘅種類', startSteaming: '開火！', cancelReset: '熄火 / 重置', recipe: '蒸魚必勝法則', smartMemoryBadge: '🔥 已自動校正爐火火力', estimatedTime: '預計需時', steaming: '蒸緊...', resting: '🤫 熄火焗魚中...', stopAlarm: '熄火！', dismissAlarm: '按此停止', serveNow: '食得！', feedbackTitle: '今次效果點？', feedbackSubtitle: '我會記住你部爐嘅火力，下次再準啲！', perfect: '完美 (啱啱好)', undercooked: '未熟 (生)', overcooked: '老咗 (過火)', shareResult: '分享成果', shareText: (weight, fish) => `🐟 完美！我用【港式蒸魚王】成功蒸咗條 ${weight} ${fish}！火候啱啱好。你都試下：https://www.fishtimer.com`, rescueButton: '🚑 補火救魚', sauceTitle: '必勝豉油比例', soySauce: '蒸魚豉油', sugar: '白糖', hotWater: '熟水', oil: '蔥絲/滾油', tbsp: '湯匙', tsp: '茶匙', adequate: '適量', recipeTitle: '蒸魚必勝法則', recipeStep1: '魚底墊蔥段，大火水滾落鑊。', recipeStep2: '蒸完一定要倒掉碟底腥水 (秘訣!)。', recipeStep3: '舖蔥絲，淋滾油激發香味。', recipeStep4: '最後沿碟邊倒入熱豉油', chefTip1: '💡 專家推介：配合', chefTipBold: '優質頭抽 (Premium Soy)', chefTip2: '味道更鮮。' },
+        ph: { appName: 'Timer ng Isda', appVersion: 'HK Fish King V9.5', fishWeight: 'Timbang ng Isda', catties: '斤', taels: '両', grams: 'g', fishType: 'Klase ng Isda', startSteaming: 'Simulan!', cancelReset: 'Kanselahin', recipe: 'Gabay sa Pagluluto', smartMemoryBadge: '🔥 Inayos base sa lakas ng kalan', estimatedTime: 'Oras ng pagluluto', steaming: 'Nagluluto...', resting: 'Hayaan muna (Resting)', stopAlarm: 'PATAYIN APOY!', dismissAlarm: 'PINDUTIN ITO', serveNow: 'Ihain na!', feedbackTitle: 'Kumusta ang luto?', perfect: 'Sakto', undercooked: 'Hilaw', overcooked: 'Sunog', shareResult: 'Ibahagi', shareText: (weight, fish) => `Perfect steamed ${fish} (${weight}) with FishTimer! Try it: https://www.fishtimer.com`, rescueButton: '🚑 Hilaw pa?', sauceTitle: 'Timpla ng Toyo', soySauce: 'Toyo', sugar: 'Asukal', hotWater: 'Mainit na Tubig', oil: 'Mantika/Sibuyas', tbsp: 'tbsp', tsp: 'tsp', adequate: 'Sapat' },
+        id: { appName: 'Timer Ikan HK', appVersion: 'HK Fish King V9.5', fishWeight: 'Berat Ikan', catties: '斤', taels: '両', grams: 'g', fishType: 'Jenis Ikan', startSteaming: 'Mulai!', cancelReset: 'Batal', recipe: 'Resep Rahasia', smartMemoryBadge: '🔥 Otomatis sesuai kompor Anda', estimatedTime: 'Waktu kukus', steaming: 'Mengukus...', resting: 'Diamkan sebentar', stopAlarm: 'MATIKAN API!', dismissAlarm: 'TEKAN INI', serveNow: 'Siap Saji!', feedbackTitle: 'Hasilnya?', feedbackSubtitle: 'Saya ingat setelan Anda.', undercooked: 'Mentah', perfect: 'Pas', overcooked: 'Kematangan', shareResult: 'Bagikan', shareText: (weight, fish) => `Ikan ${fish} (${weight}) matang sempurna with FishTimer! Coba di: https://www.fishtimer.com`, rescueButton: '🚑 Belum matang?', sauceTitle: 'Saran Kecap', soySauce: 'Kecap Ikan', sugar: 'Gula', hotWater: 'Air Panas', oil: 'Minyak Panas', tbsp: 'sdm', tsp: 'sdt', adequate: 'Secukupnya' }
       };
 
       const WeightIcon = ({ className }) => React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", className: className || "w-8 h-8", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2.5 }, React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" }));
@@ -95,6 +97,7 @@
       const MarketLampIcon = ({ className }) => React.createElement("svg", { className: className || "w-10 h-10", viewBox: "0 0 40 40", fill: "none", xmlns: "http://www.w3.org/2000/svg" }, React.createElement("path", { d: "M20 5V8M20 32V35M10 15L6 11M34 11L30 15", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round" }), React.createElement("path", { d: "M5 24C5 18 10 12 20 12C30 12 35 18 35 24H5Z", fill: "currentColor" }), React.createElement("path", { d: "M12 24V28C12 30.2091 15.5817 32 20 32C24.4183 32 28 30.2091 28 28V24", stroke: "currentColor", strokeWidth: "3" }));
       const WokIcon = ({ className }) => React.createElement("svg", { className: className || "w-10 h-10", viewBox: "0 0 32 32", fill: "none", xmlns: "http://www.w3.org/2000/svg" }, React.createElement("path", { d: "M4 18C4 22 8 26 16 26C24 26 28 22 28 18", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round" }), React.createElement("path", { d: "M6 16C6 16 10 10 16 10C22 10 26 16 26 16H6Z", fill: "currentColor", opacity: "0.2", stroke: "currentColor", strokeWidth: "2" }), React.createElement("path", { d: "M16 10V6", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }), React.createElement("path", { d: "M14 6H18", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round" }));
       
+      // --- UI Components (Sauce Calculator & Recipe - Completely Preserved) ---
       const SauceCalculator = ({ totalTaels, t }) => {
         if (totalTaels <= 0) return null;
         let multiplier = totalTaels > 20 ? 2 : totalTaels > 12 ? 1.5 : 1;
@@ -192,9 +195,12 @@
 
       const App = () => {
         const [language, setLanguage] = useState('zh');
-        const [catties, setCatties] = useState(1);
-        const [taels, setTaels] = useState(0);
-        const [grams, setGrams] = useState(TAELS_PER_CATTY * GRAMS_PER_TAEL);
+        
+        // 【修正 1】預設值改為空白字串 ''，讓用戶自己輸入，不需刪除
+        const [catties, setCatties] = useState(''); 
+        const [taels, setTaels] = useState('');
+        const [grams, setGrams] = useState(''); // 克也預設空白
+        
         const [fishTypeId, setFishTypeId] = useState(FISH_CATEGORIES[0].fishes[0].id);
         const [calculatedTime, setCalculatedTime] = useState(0);
         const [timeRemaining, setTimeRemaining] = useState(0);
@@ -210,30 +216,60 @@
         }, [language]);
         useEffect(() => { const saved = localStorage.getItem('userTimeOffset'); if (saved) setUserTimeOffset(parseInt(saved, 10) || 0); }, []);
         
+        // 【修正 2】手機聲效強力解鎖 (Mobile Sound Unlock)
         const ensureAudioContext = useCallback(() => {
           if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          // 1. Resume context
           if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+          // 2. Play silent oscillator to force unlock iOS/Android audio engine
+          try {
+            const osc = audioCtxRef.current.createOscillator();
+            const gain = audioCtxRef.current.createGain();
+            gain.gain.value = 0; // 靜音
+            osc.connect(gain);
+            gain.connect(audioCtxRef.current.destination);
+            osc.start(0);
+            osc.stop(0.001); // 極短播放
+          } catch (e) { /* ignore */ }
         }, []);
 
+        // 【修正 3】輸入處理：允許空白，計算時當作 0
         const handleCattyTaelChange = (newCattiesStr, newTaelsStr) => {
-            const newCatties = parseInt(newCattiesStr, 10) || 0; const newTaels = parseInt(newTaelsStr, 10) || 0;
-            setCatties(newCatties); setTaels(newTaels);
-            setGrams(parseFloat(((newCatties * TAELS_PER_CATTY + newTaels) * GRAMS_PER_TAEL).toFixed(1)));
+            setCatties(newCattiesStr);
+            setTaels(newTaelsStr);
+            const cVal = newCattiesStr === '' ? 0 : parseInt(newCattiesStr);
+            const tVal = newTaelsStr === '' ? 0 : parseInt(newTaelsStr);
+            // 只在有數值時更新 Grams 顯示
+            if (newCattiesStr === '' && newTaelsStr === '') setGrams('');
+            else setGrams(parseFloat(((cVal * TAELS_PER_CATTY + tVal) * GRAMS_PER_TAEL).toFixed(1)));
         };
+        
         const handleGramsChange = newGramsStr => {
-            const newGrams = parseFloat(newGramsStr) || 0; setGrams(newGrams);
-            if (newGrams === 0) { setCatties(0); setTaels(0); return; }
-            const totalTaels = newGrams / GRAMS_PER_TAEL; let newCatties = Math.floor(totalTaels / TAELS_PER_CATTY);
-            let newTaels = Math.round(totalTaels % TAELS_PER_CATTY); if (newTaels === TAELS_PER_CATTY) { newCatties += 1; newTaels = 0; }
+            setGrams(newGramsStr);
+            if (newGramsStr === '') { setCatties(''); setTaels(''); return; }
+            const gVal = parseFloat(newGramsStr);
+            const totalTaels = gVal / GRAMS_PER_TAEL;
+            let newCatties = Math.floor(totalTaels / TAELS_PER_CATTY);
+            let newTaels = Math.round(totalTaels % TAELS_PER_CATTY); 
+            if (newTaels === TAELS_PER_CATTY) { newCatties += 1; newTaels = 0; }
             setCatties(newCatties); setTaels(newTaels);
         };
+
         useEffect(() => {
-            const totalTaels = catties * TAELS_PER_CATTY + taels; if (totalTaels <= 0) { setCalculatedTime(0); return; }
+            const cVal = catties === '' ? 0 : parseInt(catties);
+            const tVal = taels === '' ? 0 : parseInt(taels);
+            const totalTaels = cVal * TAELS_PER_CATTY + tVal;
+            
+            if (totalTaels <= 0) { 
+                setCalculatedTime(0); // 沒輸入時時間歸零
+                return; 
+            }
             const selectedFish = FISH_CATEGORIES.flatMap(c => c.fishes).find(f => f.id === fishTypeId);
             const multiplier = selectedFish ? selectedFish.multiplier : 1.0;
             const baseTime = BASE_TIME_SECONDS + ((totalTaels - TAELS_PER_CATTY) * SECONDS_PER_TAEL_ADJUSTMENT);
             const finalTime = Math.max(0, Math.round(baseTime * multiplier) + userTimeOffset);
-            setCalculatedTime(finalTime); if (['idle', 'feedback'].includes(timerState)) setTimeRemaining(finalTime);
+            setCalculatedTime(finalTime); 
+            if (['idle', 'feedback'].includes(timerState)) setTimeRemaining(finalTime);
         }, [catties, taels, fishTypeId, timerState, userTimeOffset]);
         
         const stopAlarm = useCallback(() => { if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current); alarmIntervalRef.current = null; }, []);
@@ -242,7 +278,6 @@
             ensureAudioContext(); stopAlarm();
             const play = () => {
                 if (!audioCtxRef.current) return; const now = audioCtxRef.current.currentTime;
-                // --- 4連嗶 經典聲效 ---
                 if(type === 'urgent') for (let i = 0; i < 4; i++) { const osc = audioCtxRef.current.createOscillator(); osc.type = 'square'; osc.frequency.setValueAtTime(1200, now); osc.connect(audioCtxRef.current.destination); osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.06); } 
                 else { const o1 = audioCtxRef.current.createOscillator(); o1.type = 'sine'; o1.frequency.setValueAtTime(1000, now); o1.connect(audioCtxRef.current.destination); o1.start(now); o1.stop(now + 0.15); }
             };
@@ -271,13 +306,12 @@
               )
             ),
             
-            // --- 修正：新增清除功能與交叉符號 ---
             timerState === 'idle' && userTimeOffset !== 0 && React.createElement("div", { 
               onClick: () => { setUserTimeOffset(0); localStorage.removeItem('userTimeOffset'); },
               className: "cursor-pointer bg-red-50 text-red-500 text-[10px] font-black tracking-widest uppercase text-center py-2 px-4 rounded-full border border-red-200 hover:bg-red-100 transition-colors flex items-center justify-center gap-2" 
             }, 
               React.createElement("span", null, `${t('smartMemoryBadge')} (${userTimeOffset > 0 ? '+' : ''}${userTimeOffset}S)`),
-              React.createElement(XIcon, { className: "w-3 h-3" }) // 交叉符號
+              React.createElement(XIcon, { className: "w-3 h-3" }) 
             ),
             
             React.createElement("div", { className: `${timerState !== 'idle' ? 'hidden' : 'space-y-8'}` },
@@ -287,22 +321,24 @@
                   React.createElement("div", { className: "grid grid-cols-1 gap-4" },
                     React.createElement("div", { className: "flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm" },
                       React.createElement("div", { className: "relative flex-1" },
-                        React.createElement("input", { type: "number", value: catties, onChange: e => handleCattyTaelChange(e.target.value, String(taels)), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none" }),
+                        // 【修正 4】輸入框使用 placeholder="0" 並加入 onFocus 全選
+                        React.createElement("input", { type: "number", value: catties, onFocus: e => e.target.select(), onChange: e => handleCattyTaelChange(e.target.value, String(taels)), placeholder: "0", className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none placeholder-slate-200" }),
                         React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('catties'))
                       ),
                       React.createElement("div", { className: "w-px h-10 bg-slate-200 my-auto" }),
                       React.createElement("div", { className: "relative flex-1" },
-                        React.createElement("input", { type: "number", value: taels, onChange: e => handleCattyTaelChange(String(catties), e.target.value), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none", max: "15" }),
+                        React.createElement("input", { type: "number", value: taels, onFocus: e => e.target.select(), onChange: e => handleCattyTaelChange(String(catties), e.target.value), placeholder: "0", className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none placeholder-slate-200", max: "15" }),
                         React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('taels'))
                       )
                     ),
                     React.createElement("div", { className: "relative bg-slate-50 p-1.5 rounded-2xl border border-slate-200" },
-                      React.createElement("input", { type: "number", value: grams, onChange: e => handleGramsChange(e.target.value), className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none" }),
+                      React.createElement("input", { type: "number", value: grams, onFocus: e => e.target.select(), onChange: e => handleGramsChange(e.target.value), placeholder: "0", className: "w-full py-4 text-center font-black text-3xl text-slate-900 bg-transparent focus:outline-none placeholder-slate-200" }),
                       React.createElement("span", { className: "absolute bottom-1 left-0 right-0 text-[10px] text-center font-black text-slate-400 uppercase" }, t('grams'))
                     )
                   )
                 ),
-                React.createElement(SauceCalculator, { totalTaels: catties * TAELS_PER_CATTY + taels, t: t })
+                // 保留豉油計算機，使用計算後的數值 (空白時為0)
+                React.createElement(SauceCalculator, { totalTaels: (catties === '' ? 0 : parseInt(catties)) * TAELS_PER_CATTY + (taels === '' ? 0 : parseInt(taels)), t: t })
               ),
               React.createElement("div", { className: "space-y-3" },
                 React.createElement("label", { className: "flex items-center text-lg font-bold text-slate-900 uppercase" }, React.createElement(FishIcon, { className: "w-8 h-8 text-slate-700 mr-2" }), t('fishType')),
@@ -319,11 +355,11 @@
               )
             ),
             
-            // --- 修正：取消 TimerDisplay 條件，確保時鐘常駐 ---
             React.createElement(TimerDisplay, { t: t, timeRemaining: timeRemaining, calculatedTime: calculatedTime, timerState: timerState, onStopAlarmOrFinish: () => { if (timerState === 'heat_alarm') setTimerState('resting'); else if (timerState === 'ready_alarm') { setTimerState('feedback'); stopAlarm(); } }, onFeedback: fb => { let offset = userTimeOffset; if (fb === 'undercooked') offset += 30; if (fb === 'overcooked') offset -= 30; setUserTimeOffset(offset); localStorage.setItem('userTimeOffset', String(offset)); setTimerState('idle'); }, onStartRescue: () => { setTimeRemaining(90); setTimerState('rescue'); }, fishName: selectedFish.name, weightString: `${catties}${t('catties')}${taels}${t('taels')}` }),
             
             React.createElement("div", { className: "pt-4" },
               timerState === 'idle' ?
+                // 【修正 5】點擊按鈕時觸發 ensureAudioContext (解鎖手機音效)
                 React.createElement("button", { onClick: () => { ensureAudioContext(); setTimeRemaining(calculatedTime); setTimerState('steaming'); }, className: "w-full flex items-center justify-center py-4 rounded-2xl font-bold text-lg text-white bg-red-600 shadow-lg shadow-red-900/30 uppercase active:scale-[0.98] transition-all" }, React.createElement(PlayIcon, { className: "w-6 h-6 mr-3" }), t('startSteaming')) :
                 !['feedback'].includes(timerState) && React.createElement("button", { onClick: () => setTimerState('idle'), className: "w-full flex items-center justify-center py-4 rounded-2xl font-bold text-lg bg-slate-800 text-white uppercase active:scale-[0.98] transition-all" }, React.createElement(RotateCwIcon, { className: "w-6 h-6 mr-3" }), t('cancelReset'))
             ),
